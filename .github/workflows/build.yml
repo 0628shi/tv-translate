@@ -20,6 +20,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Local self-test
+        run: ./gradlew :devtools:run --args="selftest" --no-daemon
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
 

@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "TvTranslate"
 include(":app")
+include(":core")
+include(":devtools")

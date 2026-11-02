@@ -59,6 +59,28 @@ App 里有两套独立的 OpenAI 兼容接口。
 
 45 分钟一集、云端 ASR 的情况，大约 1–5 分钟处理完。
 
+## 本地测试（不用装手机）
+
+```powershell
+.\run-tests.ps1
+```
+
+跑 11 项自检，全部在 JVM 上完成，不碰设备：SRT/ASS 解析、SRT 往返、时间格式化、重叠/重复修复、48k→16k 重采样、WAV 头、翻译 JSON 解析、提示词构造。
+
+也可以不经过手机，直接用 SRT 验证真实翻译效果：
+
+```powershell
+.\run-tests.ps1 -TestArgs "translate --in ep01.srt --out ep01.zh.srt --base-url https://api.deepseek.com/v1 --api-key sk-xxx --model deepseek-chat --target 简体中文"
+```
+
+模块划分：
+
+- `core/`：纯 Kotlin/JVM 逻辑（字幕解析、重采样、WAV、提示词、JSON 解析），可脱离 Android 运行
+- `devtools/`：JVM 测试与命令行工具，`gradlew :devtools:run --args="selftest"`
+- `app/`：Android UI、MediaCodec 抽音频、ASR 与播放
+
+> 本机没有 JUnit 缓存，也没有模拟器镜像，所以测试用 Kotlin `main()` + 断言实现，退出码 0/1，不依赖测试框架。
+
 ## 处理流程
 
 ```
@@ -112,10 +134,12 @@ App 里有两套独立的 OpenAI 兼容接口。
 tv-translate/
 ├─ app/src/main/java/com/tvtranslate/app/
 │  ├─ MainActivity.kt / AppViewModel.kt / Settings.kt
-│  ├─ model/Cue.kt
-│  ├─ pipeline/  AudioExtractor, AsrClient, Translator, SubtitleParser, Pipeline, CueStore
+│  ├─ pipeline/  AudioExtractor, AsrClient, Translator, Pipeline, CueStore
 │  └─ ui/        Home, Settings, Processing, Player, Theme
+├─ core/         纯 JVM 逻辑（Cue、SubtitleParser、重采样、WAV、提示词、JSON）
+├─ devtools/     本地测试与命令行工具
 ├─ docs/可行性分析.md
+├─ run-tests.ps1
 └─ build-apk.ps1
 ```
 

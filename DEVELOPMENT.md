@@ -77,6 +77,19 @@ git push origin main
 3. 进入对应 run → 底部 **Artifacts** → 下载 `tv-translate-debug-apk`
 4. 解压得到 `app-debug.apk`
 
+### 3.3 本地测试（不装手机）
+
+```powershell
+.\run-tests.ps1                 # 11 项自检
+.\run-tests.ps1 -TestArgs "translate --in ep01.srt --out ep01.zh.srt --base-url https://api.deepseek.com/v1 --api-key sk-xxx --model deepseek-chat --target 简体中文"
+```
+
+- 测试跑在 `:devtools` 的 JVM `main()` 里，不依赖 JUnit、不需要设备或模拟器。
+- 断言失败会以非 0 退出码结束，方便接 CI。
+- 纯逻辑都在 `:core`，Android 层只保留 MediaCodec/播放/UI。
+
+> 本机没有 JUnit 与 emulator 镜像（Maven 不可达），所以没有用标准 `test` source set。
+
 ---
 
 ## 4. 代码结构
@@ -87,15 +100,26 @@ app/src/main/java/com/tvtranslate/app/
 ├── AppViewModel.kt          # 状态机：Home / Settings / Processing / Player
 ├── Settings.kt              # BYOK 配置（SharedPreferences）
 ├── Utils.kt
-├── model/Cue.kt             # 字幕条目
 ├── pipeline/
 │   ├── AudioExtractor.kt    # MediaExtractor + MediaCodec → 16k 单声道 WAV 分块
 │   ├── AsrClient.kt         # OpenAI 兼容 /audio/transcriptions
 │   ├── Translator.kt        # 批量翻译 + 上下文 + 术语表
-│   ├── SubtitleParser.kt    # SRT / ASS 解析
 │   ├── Pipeline.kt          # 编排：字幕文件或 ASR → 翻译
 │   └── CueStore.kt          # 缓存与 SRT 导出
 └── ui/                      # Home / Settings / Processing / Player / Theme
+
+core/src/main/kotlin/com/tvtranslate/app/
+├── model/Cue.kt             # 字幕条目
+└── pipeline/
+    ├── SubtitleParser.kt    # SRT / ASS 解析
+    ├── SrtCodec.kt          # SRT 生成
+    ├── CueNormalizer.kt     # 重叠 / 重复修复
+    ├── MonoResampler.kt     # 48k → 16k 重采样
+    ├── WavWriter.kt         # WAV 封装
+    ├── TranslationPrompt.kt # 提示词构造
+    └── TranslationJson.kt   # LLM 返回解析
+
+devtools/                    # JVM 自检 + translate 命令行（不依赖 Android）
 ```
 
 **关键约定**：

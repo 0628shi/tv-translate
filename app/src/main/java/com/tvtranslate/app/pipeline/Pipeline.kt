@@ -69,7 +69,7 @@ class Pipeline(private val context: Context) {
                 onLog("第 ${i + 1} 段识别出 ${part.size} 条")
                 chunk.file.delete()
             }
-            cues = normalize(collected)
+            cues = CueNormalizer.normalize(collected)
             if (cues.isEmpty()) throw IllegalStateException("没有识别到对白，请换一个视频或用字幕文件")
             onLog("共 ${cues.size} 条台词")
         }
@@ -105,26 +105,5 @@ class Pipeline(private val context: Context) {
         val utf8 = String(bytes, Charsets.UTF_8)
         val text = if (utf8.contains('\uFFFD')) String(bytes, charset("GBK")) else utf8
         return text.trimStart('\uFEFF')
-    }
-
-    private fun normalize(input: List<Cue>): MutableList<Cue> {
-        val out = mutableListOf<Cue>()
-        for (cue in input.sortedBy { it.startMs }) {
-            if (cue.text.isBlank() || cue.endMs <= cue.startMs) continue
-            val prev = out.lastOrNull()
-            if (prev != null) {
-                if (cue.startMs < prev.endMs) {
-                    val fixedEnd = maxOf(prev.startMs + 200, cue.startMs - 50)
-                    if (fixedEnd <= prev.startMs) continue
-                    out[out.size - 1] = prev.copy(endMs = fixedEnd)
-                }
-                val last = out.lastOrNull()
-                if (last != null && last.text == cue.text && cue.startMs - last.endMs < 400) {
-                    continue
-                }
-            }
-            out.add(cue)
-        }
-        return out
     }
 }
