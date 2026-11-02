@@ -1,0 +1,10 @@
+* text=auto
+
+# Shell scripts must keep LF so Linux CI can execute them.
+gradlew text eol=lf
+*.sh text eol=lf
+gradlew.bat text eol=crlf
+
+*.jar binary
+*.png binary
+*.apk binary
